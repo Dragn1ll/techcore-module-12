@@ -1,6 +1,8 @@
 using Library.Data.PostgreSql;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using OrderWorkerService.Consumers;
 
 var builder = Host.CreateDefaultBuilder(args);
@@ -30,8 +32,18 @@ builder.ConfigureServices((hostContext, services) =>
 
             cfg.ConfigureEndpoints(context);
         });
-    }); 
-    
+    })
+        .AddOpenTelemetry()
+        .WithTracing(b => b
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("OrderWorkerService"))
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddSource("MassTransit")
+            .AddZipkinExporter(o =>
+            {
+                o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+            })
+        );
 });
 
 var host = builder.Build();

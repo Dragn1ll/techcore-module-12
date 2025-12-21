@@ -1,6 +1,7 @@
 using Library.Data.PostgreSql;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OrderWorkerService.Consumers;
@@ -43,7 +44,10 @@ builder.ConfigureServices((hostContext, services) =>
             {
                 o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
             })
-        );
+        )
+        .WithMetrics(m => m
+            .AddHttpClientInstrumentation()
+            .AddPrometheusExporter());
 });
 
 var host = builder.Build();

@@ -7,6 +7,7 @@ using Library.Web.BackgroundServices;
 using Library.Web.Extensions;
 using Library.Web.Options;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -48,11 +49,17 @@ public class Program
                 {
                     o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
                 })
-            );
+            )
+            .WithMetrics(m => m
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddPrometheusExporter());
 
         var app = builder.Build();
 
         app.AddLocalization();
+        
+        app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
         var mySettings = app.Services.GetRequiredService<IOptions<MySettings>>().Value;
 

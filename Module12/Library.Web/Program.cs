@@ -7,6 +7,8 @@ using Library.Web.BackgroundServices;
 using Library.Web.Extensions;
 using Library.Web.Options;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 namespace Library.Web;
 
@@ -35,6 +37,18 @@ public class Program
         services.Configure<MySettings>(builder.Configuration.GetSection("MySettings"));
 
         services.AddHostedService<AverageRatingCalculatorService>();
+        
+        services.AddOpenTelemetry()
+            .WithTracing(b => b
+                .SetResourceBuilder(
+                    ResourceBuilder.CreateDefault().AddService("book-service"))
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddZipkinExporter(o =>
+                {
+                    o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+                })
+            );
 
         var app = builder.Build();
 

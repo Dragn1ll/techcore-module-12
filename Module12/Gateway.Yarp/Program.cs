@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +50,18 @@ builder.Services.AddHttpClient("ReviewService", client =>
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(b => b
+        .SetResourceBuilder(
+            ResourceBuilder.CreateDefault().AddService("book-service"))
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddZipkinExporter(o =>
+        {
+            o.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+        })
+    );
 
 var app = builder.Build();
 

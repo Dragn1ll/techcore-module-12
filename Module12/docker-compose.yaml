@@ -130,6 +130,15 @@
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+  
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
 
 volumes:
   postgres_data:

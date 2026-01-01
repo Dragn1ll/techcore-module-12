@@ -2,6 +2,7 @@
 using Library.Data.PostgreSql;
 using Library.Documents.MongoDb;
 using Library.Domain;
+using Library.Domain.Services;
 using Library.Identity;
 using Library.Web.BackgroundServices;
 using Library.Web.Extensions;
@@ -39,6 +40,8 @@ public class Program
 
         services.AddHostedService<AverageRatingCalculatorService>();
         
+        builder.Services.AddSingleton<BookMetrics>();
+        
         services.AddOpenTelemetry()
             .WithTracing(b => b
                 .SetResourceBuilder(
@@ -51,6 +54,7 @@ public class Program
                 })
             )
             .WithMetrics(m => m
+                .AddMeter(BookMetrics.MeterName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddPrometheusExporter());

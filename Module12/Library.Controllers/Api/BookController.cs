@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Library.Contracts.Books.Request;
 using Library.Contracts.Books.Response;
 using Library.Domain.Abstractions.Services;
+using Library.Domain.Services;
 using Library.Web.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +18,15 @@ public sealed class BookController : Controller
     private readonly IBookService _bookService;
     private readonly IDistributedCache _cache;
     private readonly IAnalyticsService _analyticsService;
+    private readonly BookMetrics _metrics;
 
-    public BookController(IBookService bookService, IDistributedCache cache, IAnalyticsService analyticsService)
+    public BookController(IBookService bookService, IDistributedCache cache, IAnalyticsService analyticsService, 
+        BookMetrics metrics)
     {
         _bookService = bookService;
         _cache = cache;
         _analyticsService = analyticsService;
+        _metrics = metrics;
     }
     
     [HttpPost]
@@ -30,9 +34,14 @@ public sealed class BookController : Controller
     {
         var result = await _bookService.CreateAsync(request.ToCreateBookDto());
         
-        return result.IsSuccess 
-            ? Ok(new CreateBookResponse(result.Value)) 
-            : Problem(result.Error!.Message, statusCode: (int)result.Error.ErrorType);
+        if (result.IsSuccess)
+        {
+            _metrics.BookCreated();
+            
+            return Ok(new CreateBookResponse(result.Value));
+        }
+        
+        return Problem(result.Error!.Message, statusCode: (int)result.Error.ErrorType);
     }
     
     [Authorize]
